@@ -151,7 +151,7 @@ def assemble( filename, listingon=True):
                             reg_field = 0
                             if (inst in "jp jpovr".split()) and len(opfields)==1:
                                 # <instr> <expr[!r0-3]>
-                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
+                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\'\"\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
                             elif inst == "halt":
                                 gd = { "operand":"00", "modifier":"00"}
                             elif len(opfields)==2 :
@@ -165,7 +165,7 @@ def assemble( filename, listingon=True):
                                     inst = inst+"c"
                                 else:
                                     operand = opfields[1].strip()
-                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
+                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\'\"\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
                             else:
                                 raise Exception ( "Wrong number of arguments")
                             field_dict = { "inst": op.index(inst), "adr":eval(gd["operand"],globals(),symtab), "reg":reg_field, "mod":0 if not gd["modifier"] else int(gd["modifier"][1])}

@@ -99,7 +99,7 @@ def emulate ( filename, nolisting ) :
         pc += 1
 
         if opcode == op["halt"]:
-            print("\nStopped on halt instruction at %04x after executing %d instructions"  % (pc, instr_count) )
+            print("\nStopped on halt instruction at 0x%04x after executing %d instructions"  % (pc, instr_count) )
             break
 
         elif opcode == op["ld"]:
