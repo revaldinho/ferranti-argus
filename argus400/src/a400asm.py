@@ -53,13 +53,11 @@ EXAMPLES ::
 '''
 
 header_text = '''
-# ----------------------------------------------------------------------------
-# A r g u s 4 0 0  * A S S E M B L E R
-# ----------------------------------------------------------------------------
-#
-# ADDRESS : CODE                    : SOURCE
-#---------:-------------------------:-----------------------------------------
-'''
+; -----------------------------------------------------------------------
+; A r g u s 4 0 0  *  A S S E M B L E R
+; -----------------------------------------------------------------------
+; ADDR : CODE                  : SOURCE 
+; -----:-----------------------:-----------------------------------------'''
 
 import sys, re, codecs, getopt
 
@@ -75,13 +73,14 @@ def expand_macro(line, macro, mnum):  # recursively expand macros, passing on in
     (text,mobj)=([line],re.match("^(?P<label>\w*\:)?\s*(?P<name>\w+)\s*?\((?P<params>.*?)\)",line))
     if mobj and mobj.groupdict()["name"] in macro:
         (label,instname,paramstr)= (mobj.groupdict()["label"],mobj.groupdict()["name"],mobj.groupdict()["params"])
-        (text, instparams,mnum,nextmnum) = ([";%s" % line], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
+        (text, instparams,mnum,nextmnum) = (["; MACRO %s" % line.strip()], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
         if label:
             text.append("%s%s"% (label, ":" if (label != "" and label != "None" and not (label.endswith(":"))) else ""))
         for newline in macro[instname][1]:
             for (s,r) in zip( macro[instname][0], instparams):
                 newline = (newline.replace(s,r) if s else newline).replace('@','%s_%s' % (instname,mnum))
             text.extend(expand_macro(newline, macro, nextmnum))
+        text.append("; ENDMACRO")
     return(text)
 
 def preprocess( filename ) :
@@ -93,10 +92,10 @@ def preprocess( filename ) :
         if mobj:
             (macroname,macro[macroname])=(mobj.groupdict()["name"],([x.strip() for x in (mobj.groupdict()["params"]).split(",")],[]))
         elif re.match("\s*?ENDMACRO.*", line, re.IGNORECASE):
-            (macroname, line) = (None, '; '+line)
+            (macroname, line) = (None, '; '+line.strip())
         elif macroname:
             macro[macroname][1].append(line)
-        newtext.extend(expand_macro(('' if not macroname else '; ') + line, macro, mnum))
+        newtext.extend(expand_macro(('' if not macroname else '; ') + line.strip(), macro, mnum))
     return newtext
 
 def assemble( filename, listingon=True):
@@ -104,8 +103,7 @@ def assemble( filename, listingon=True):
 
     op = "ld ldm add sub ldc ldmc addc subc sto stom madd msub swap and xor or jpz jpnz jpge jplt setovr setbusy out jp asr asl lsr rol none1c none1d mul div".split()
     symtab = dict( [ ("r%d"%d,0x10+d) for d in range(0,8)])
-    reg_re = re.compile("(r\d)")
-    (wordmem,wcount)=([0x00000000]*4096,0)
+    (wordmem,wcount)=([0x00000000]*16384,0)
     field_dict = {}
     newtext = preprocess(filename)
 
@@ -187,10 +185,19 @@ def assemble( filename, listingon=True):
             elif inst and (inst != "EQU") and iteration>0 :
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
             if iteration > 0 and listingon==True:
-                print("  %06x %-28s  %s"%(memptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
+                (label, code ) = ("", line.strip()) if not ':' in line else (line.strip()).split(':')
+                if label != "":                
+                    label+=':'
+                idx = 0
+                while len(words)-idx > 3:
+                    print("  %04x : %-21s : "%(memptr,' '.join([("%06x" % i) for i in words[idx:idx+3]])))
+                    idx +=3
+                    memptr +=3
+                print("  %04x : %-21s : %-10s%s"%(memptr,' '.join([("%06x" % i) for i in words[idx:]]),label,code.strip()))
 
+                
     print ("\nAssembled %d words of code with %d error%s and %d warning%s." % (wcount,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
-    print ("\nSymbol Table:\n\n%s\n\n%s\n%s" % ('\n'.join(["%-32s 0x%08X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)]),'\n'.join(errors),'\n'.join(warnings)))
+    print ("\nSymbol Table:\n\n%s\n\n%s\n%s" % ('\n'.join(["%-28s 0x%06X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)]),'\n'.join(errors),'\n'.join(warnings)))
 
     return wordmem
 
