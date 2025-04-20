@@ -2,7 +2,7 @@
 ## ============================================================================
 ## a400asm.py - word oriented assembler for the Argus 400 CPU
 ##
-## This file is part of the Ferranti Argus project: http://revaldinho.github.io/argus
+## This file is part of the Ferranti Argus project: http://revaldinho.github.io/ferranti-argus
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU Lesser General Public License as published by
@@ -57,7 +57,7 @@ header_text = '''
  A r g u s 4 0 0  *  A S S E M B L E R
 
 -------------------------------------------------------------------------
- ADDR : CODE                 : SOURCE 
+ ADDR : CODE                 : SOURCE
 ------:----------------------:-------------------------------------------'''
 
 import sys, re, codecs, getopt
@@ -103,11 +103,11 @@ def assemble( filename, listingon=True):
     global errors, warnings, nextmnum
 
     op = "ld ldm add sub ldc ldmc addc subc sto stom madd msub swap and xor or jpz jpnz jpge jplt jpovr jpbusy out jp asr asl lsr rol halt none1d mul div".split()
-    symtab = dict( [ ("r%d"%d,0x1000+d) for d in range(0,8)])
+    symtab = dict( [ ("r%d"%d,(0x1000 if d>0 else 0) +d) for d in range(0,8)])
     (wordmem,wcount)=([0x0000]*16384,0)
     (gd,field_dict) = ({},{})
     newtext = preprocess(filename)
-    
+
     for iteration in range (0,2): # Two pass assembly
         (wcount,nextmem) = (0,0)
         for line in newtext:
@@ -174,7 +174,7 @@ def assemble( filename, listingon=True):
                                 gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
                             else:
                                 raise Exception ( "Wrong number of arguments")
-                            field_dict = { "inst": op.index(inst), "adr":eval(gd["operand"],globals(),symtab), "reg":reg_field, "mod":0 if not gd["modifier"] else int(gd["modifier"][1])}                            
+                            field_dict = { "inst": op.index(inst), "adr":eval(gd["operand"],globals(),symtab), "reg":reg_field, "mod":0 if not gd["modifier"] else int(gd["modifier"][1])}
                             words = [ field_dict["adr"] << 10 | field_dict["inst"] << 5 | field_dict["reg"]<<2 | field_dict["mod"]]
                     except (ValueError, NameError, TypeError,SyntaxError, Exception ):
                         (words,errors)=([0],errors+["Error: illegal or undefined register name or expression in ...\n         %s" % line.strip() ])
@@ -183,10 +183,10 @@ def assemble( filename, listingon=True):
                 nextmem = eval(operands,globals(),symtab)
             elif inst and (inst != "EQU") and iteration>0 :
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
-                
+
             if iteration > 0 and listingon==True:
                 (label, code ) = ("", line.strip()) if not ':' in line else (line.strip()).split(':')
-                if label != "":                
+                if label != "":
                     label+=':'
                 idx = 0
                 while len(words)-idx > 3:
@@ -195,7 +195,7 @@ def assemble( filename, listingon=True):
                     memptr +=3
                 print(" %04x : %-21s: %-10s%s"%(memptr,' '.join([("%06x" % i) for i in words[idx:]]),label,code.strip()))
 
-    print ("\nSymbol Table:\n\n%s\n" % ('\n'.join(["%-28s 0x%06X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)])))                
+    print ("\nSymbol Table:\n\n%s\n" % ('\n'.join(["%-28s 0x%06X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)])))
     print ("\nAssembled %d words of code with %d error%s and %d warning%s." % (wcount,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
     print ("\n%s\n%s" % ('\n'.join(errors),'\n'.join(warnings)))
     return wordmem
