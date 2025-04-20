@@ -14,13 +14,13 @@
 	MACRO  NEG ( _R_ )
 	# Negate register R by subtracting it from zero and writing back using
 	# its memory location rather than register number
-	       msub ZERO, _R_ + 0x1000
+	       msub _R_ , ZERO
 	ENDMACRO
-	
+
 	MACRO  ASL ( _R_ , _N_ )
 		asl _R_, _N_
 	ENDMACRO
-	
+
         MACRO  DOUBLE ( _R_ )
                 ASL ( _R_, 1 )
         ENDMACRO
@@ -37,7 +37,7 @@ L1:     ld      r3, 0x1234!r1
         and     r1, DATA
         and     r1, DATA+1
         mul     r1, r2
-
+        NEG     ( r4 )
         sto     0x453, r1
         DOUBLE  ( r5 )
         jp      END
