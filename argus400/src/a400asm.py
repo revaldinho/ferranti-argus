@@ -102,8 +102,8 @@ def preprocess( filename ) :
 def assemble( filename, listingon=True):
     global errors, warnings, nextmnum
 
-    op = "ld ldm add sub ldc ldmc addc subc sto stom madd msub swap and xor or jpz jpnz jpge jplt setovr setbusy out jp asr asl lsr rol none1c none1d mul div".split()
-    symtab = dict( [ ("r%d"%d,0x10+d) for d in range(0,8)])
+    op = "ld ldm add sub ldc ldmc addc subc sto stom madd msub swap and xor or jpz jpnz jpge jplt jpovr jpbusy out jp asr asl lsr rol halt none1d mul div".split()
+    symtab = dict( [ ("r%d"%d,0x1000+d) for d in range(0,8)])
     (wordmem,wcount)=([0x0000]*16384,0)
     (gd,field_dict) = ({},{})
     newtext = preprocess(filename)
@@ -155,9 +155,11 @@ def assemble( filename, listingon=True):
                                 if re.match("r[0-7]", opfields[1]):
                                     reg_field = int(opfields[1][1])
                                 gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
-                            elif inst == "jp" and len(opfields)==1:
+                            elif (inst in "jp jpovr".split()) and len(opfields)==1:
                                 # <instr> <expr[!r0-3]>
                                 gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
+                            elif inst == "halt":
+                                gd = { "operand":"00", "modifier":"00"}
                             elif len(opfields)==2 :
                                 # <instr> <reg>[ , expr[!r0-3]]
                                 if re.match("r[0-7]", opfields[0]):

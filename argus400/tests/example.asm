@@ -11,6 +11,12 @@
 	EQU	RINT   , 0x1010 ; 1st register of interrupt program
 
 
+	MACRO  NEG ( _R_ )
+	# Negate register R by subtracting it from zero and writing back using
+	# its memory location rather than register number
+	       msub ZERO, _R_ + 0x1000
+	ENDMACRO
+	
 	MACRO  ASL ( _R_ , _N_ )
 		asl _R_, _N_
 	ENDMACRO
@@ -30,7 +36,6 @@ L1:     ld      r3, 0x1234!r1
         or      r3, 0x1234!r1
         and     r1, DATA
         and     r1, DATA+1
-
         mul     r1, r2
 
         sto     0x453, r1
