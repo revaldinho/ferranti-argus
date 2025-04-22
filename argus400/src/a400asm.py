@@ -20,7 +20,7 @@
 '''
 USAGE:
 
-  a400asm is an assembler for the OPC7 CPU
+  a400asm is an assembler for the Ferranti Argus 400 CPU
 
 REQUIRED SWITCHES ::
 
