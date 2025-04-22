@@ -64,9 +64,10 @@ def emulate ( filename ) :
 
     wordmem = readhex( filename )
 
+    conout = []
     (ovr, busy, pc) = (0, 0, 0x1020) # initialise machine state inc PC
 
-    print ("PC   : Mem    : Instr  Reg Adr   (Mod) : C O :   R1     R2     R3     R4     R5     R6     R7")
+    print ("PC   : Mem    : Instr  Reg Adr   (Mod) : C O :   R1     R2     R3     R4     R5     R6     R7   :    Q")
     while True:
         instr_word = wordmem[pc] &  0xFFFFFF
         N = (instr_word >> 10 ) & 0x03FFF
@@ -83,11 +84,12 @@ def emulate ( filename ) :
         instr_str = "%-6s" % (dis[opcode])
         opreg_str = "r%d, %06x %s" % ( acc, N, ("(r%d)"% mod) if mod>0 else "    " )
         mem_str = " %06x " % (instr_word)
-        reg_str = " ".join([ "%06x" % (wordmem[i]%0xFFFFFF) for i in range( 0x1001, 0x1000+8) ] )
+        qreg_str = "%06x" % (wordmem[reg["Q"]])
+        reg_str = " ".join([ "%06x" % (wordmem[i]&0xFFFFFF) for i in range( 0x1001, 0x1000+8) ] )
         if (operand == acc_adr) and (operand != 0):
             raise Exception ("Error - X and N cannot have the same value in %04x : %s %s" % (pc, instr_str, opreg_str ))
 
-        print ("%04x :%s: %s %s : %d %d : %s" % (pc, mem_str, instr_str, opreg_str, wordmem[reg["C"]], ovr, reg_str ))
+        print ("%04x :%s: %s %s : %d %d : %s : %s" % (pc, mem_str, instr_str, opreg_str, wordmem[reg["C"]], ovr, reg_str, qreg_str ))
 
         pc += 1
 
@@ -123,10 +125,9 @@ def emulate ( filename ) :
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
         elif opcode == op["subc"]:
-            result = wordmem [ acc_adr ]- operand
+            result = wordmem [ acc_adr ] - operand
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
-
         elif opcode == op["sto"]:
             result = wordmem [ acc_adr]
             wordmem [ operand ] = result & 0xFFFFFF
@@ -161,10 +162,10 @@ def emulate ( filename ) :
             if wordmem[ acc_adr] != 0:
                 pc = operand
         elif opcode == op["jplt"]:
-            if wordmem[ acc_adr] < 0:
+            if wordmem[ acc_adr] & 0x800000 == 0x800000:
                 pc = operand
         elif opcode == op["jpge"]:
-            if wordmem[ acc_adr] >= 0:
+            if wordmem[ acc_adr] & 0x800000 == 0:
                 pc = operand
         elif opcode == op["jpovr"]:
             if ovr != 0:
@@ -177,15 +178,29 @@ def emulate ( filename ) :
             pc = wordmem[operand]
 
         elif opcode == op["mul"]:
+
             result = wordmem[operand ] * wordmem[acc_adr]
+
+            # print ( "MUL %d * %d = %d" % ( wordmem[acc_adr] , wordmem[operand], result))
             wordmem[reg["Q"]] = result & 0x7FFFFF        # LS 23 bits
-            wordmem[operand ] = (result >>23) & 0xFFFFFF # MS 24 bits
+            wordmem[acc_adr] = (result >>23) & 0xFFFFFF # MS 24 bits
+
         elif opcode == op["div"]:
-            dividend = (wordmem[acc_adr] << 23) + wordmem[Q]  # Bit 23 of MSB is zero always
+            dividend = (wordmem[acc_adr] << 23) + wordmem[reg["Q"]]  # Bit 23 of MSB is zero always
             divisor = wordmem[operand]
             (quotient, remainder ) = ( dividend//divisor, dividend % divisor )
+            wordmem[reg["Q"]] = quotient & 0xFFFFFF
+            wordmem[acc_adr] = remainder
+
+            # print ( "DIV %d / %d = %d REM %d" % ( dividend, divisor, quotient, remainder))
+
+        elif opcode == op["out"]:
+            if operand == 0x0010: # CONOUT for now
+                conout.append ( "%c" % (wordmem[acc_adr]%127))
         else:
             print ("Error - unidentified opcode 0x%02x" % opcode)
+
+    print ( ("").join(conout) )
 
 
 if __name__ == "__main__":

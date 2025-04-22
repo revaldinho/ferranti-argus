@@ -150,14 +150,15 @@ def assemble( filename, listingon=True):
                         elif inst in op:
                             reg_field = 0
                             # Try and deal with some instruction categories before generalising
-                            if inst in ( "sto stom madd msub".split() ) and len(opfields)==2 :
-                                # <instr> expr[!r0-3]][,<reg>]
-                                if re.match("r[0-7]", opfields[1]):
-                                    reg_field = int(opfields[1][1])
-                                gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
-                            elif (inst in "jp jpovr".split()) and len(opfields)==1:
+#                            if inst in ( "sto stom madd msub out".split() ) and len(opfields)==2 :
+#                                # <instr> expr[!r0-3]][,<reg>]
+#                                if re.match("r[0-7]", opfields[1]):
+#                                    reg_field = int(opfields[1][1])
+#                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
+#                            elif (inst in "jp jpovr".split()) and len(opfields)==1:
+                            if (inst in "jp jpovr".split()) and len(opfields)==1:
                                 # <instr> <expr[!r0-3]>
-                                gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
+                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
                             elif inst == "halt":
                                 gd = { "operand":"00", "modifier":"00"}
                             elif len(opfields)==2 :
@@ -171,13 +172,13 @@ def assemble( filename, listingon=True):
                                     inst = inst+"c"
                                 else:
                                     operand = opfields[1].strip()
-                                gd = (re.match("(?P<operand>[0-9a-zA-Z\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
+                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
                             else:
                                 raise Exception ( "Wrong number of arguments")
                             field_dict = { "inst": op.index(inst), "adr":eval(gd["operand"],globals(),symtab), "reg":reg_field, "mod":0 if not gd["modifier"] else int(gd["modifier"][1])}
                             words = [ field_dict["adr"] << 10 | field_dict["inst"] << 5 | field_dict["reg"]<<2 | field_dict["mod"]]
                     except (ValueError, NameError, TypeError,SyntaxError, Exception ):
-                        (words,errors)=([0],errors+["Error: illegal or undefined register name or expression in ...\n         %s" % line.strip() ])
+                        (words,errors)=([0],errors+["Error:%d: illegal or undefined register name or expression in ...\n         %s" % (iteration,line.strip()) ])
                 (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
             elif inst == "ORG":
                 nextmem = eval(operands,globals(),symtab)
@@ -185,10 +186,15 @@ def assemble( filename, listingon=True):
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
 
             if iteration > 0 and listingon==True:
-                (label, code ) = ("", line.strip()) if not ':' in line else (line.strip()).split(':')
-                if label != "":
-                    label+=':'
+                l = line.strip()
                 idx = 0
+                label = ""
+                code = l
+                if not l.startswith(";"):
+                    (label, code ) = ("", l) if not ':' in line else (l).split(':')
+                    if label != "":
+                        label+=':'
+                        idx = 0
                 while len(words)-idx > 3:
                     print(" %04x : %-21s: "%(memptr,' '.join([("%06x" % i) for i in words[idx:idx+3]])))
                     idx +=3
