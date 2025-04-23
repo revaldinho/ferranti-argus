@@ -38,7 +38,7 @@ L1:     ld      r3, 0x1234!r1
         and     r1, DATA+1
         mul     r1, r2
         NEG     ( r4 )
-        sto     0x453, r1
+        sto     r1, 0x123
         DOUBLE  ( r5 )
         jp      END
         jplt    r4, END*2
