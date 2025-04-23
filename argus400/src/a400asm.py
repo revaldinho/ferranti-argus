@@ -149,13 +149,6 @@ def assemble( filename, listingon=True):
                             words = [int(eval( f,globals(), symtab)) for f in opfields ]
                         elif inst in op:
                             reg_field = 0
-                            # Try and deal with some instruction categories before generalising
-#                            if inst in ( "sto stom madd msub out".split() ) and len(opfields)==2 :
-#                                # <instr> expr[!r0-3]][,<reg>]
-#                                if re.match("r[0-7]", opfields[1]):
-#                                    reg_field = int(opfields[1][1])
-#                                gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
-#                            elif (inst in "jp jpovr".split()) and len(opfields)==1:
                             if (inst in "jp jpovr".split()) and len(opfields)==1:
                                 # <instr> <expr[!r0-3]>
                                 gd = (re.match("(?P<operand>[0-9a-zA-Z_\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", opfields[0])).groupdict()
