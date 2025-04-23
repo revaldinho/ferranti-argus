@@ -18,7 +18,7 @@
         ;;  Magic Console output for emulator
         EQU     CONOUT , 0x0010
 
-        EQU     DIGITS,   16            ;; Digits to be printed
+        EQU     DIGITS,   128           ;; Digits to be printed
         EQU     COLS,     DIGITS+2      ;; Needs a few more columns than digits to avoid occasional errors in last digit or few
 
         ORG     0x1020          ; Place program in 1st block of core store above register locations
@@ -49,10 +49,9 @@ L3:     ld      r1, remain!r3   ; r1 = remain[r3]
         add     r2, #1          ; r2= (i+1)
         ld      r4, #10
         mul     r1, r4          ; <r1,RQ> = remain[i]*10
-        ld      r1, RQ          ; get LSW into r1, discard MSW
-        add     r1, r6          ; r1 = Q + remain[i]*10
-        sto     r1, RQ          ; put result back into LSW of dividend
-        ld      r1, #ZERO       ; zero MSW of dividend
+        add     r6, RQ          ; use r6 temporarily as N = Q + remain[i]*10 (taking LSW from result, discarding MSW)
+        sto     r6, RQ          ; put result back into LSW of dividend
+        ld      r1, #ZERO       ; zero MSW of divident
         div     r1, r2          ; divide by (i+1)
         sto     r1, remain!r3   ; store new remainder
         ld      r6, RQ          ; get new quotient
