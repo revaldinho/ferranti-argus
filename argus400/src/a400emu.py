@@ -31,7 +31,7 @@ EXAMPLES :
   python3 a400asm.py -f test.hex
 
 '''
-
+from functools import reduce
 import sys, re, getopt
 
 def usage():
@@ -65,12 +65,13 @@ def emulate ( filename, nolisting ) :
     wordmem = readhex( filename )
 
     conout = []
-    (ovr, busy, pc) = (0, 0, 0x1020) # initialise machine state inc PC
+    (ovr, busy, pc, instr_count) = (0, 0, 0x1020, 0) # initialise machine state inc PC
 
     if not nolisting:
         print ("PC   : Mem    : Instr  Reg Adr   (Mod) : C O :   R1     R2     R3     R4     R5     R6     R7   :    Q")
-        
+
     while True:
+        instr_count += 1
         instr_word = wordmem[pc] &  0xFFFFFF
         N = (instr_word >> 10 ) & 0x03FFF
         opcode = (instr_word >> 5) & 0x1F
@@ -93,11 +94,12 @@ def emulate ( filename, nolisting ) :
 
         if not nolisting:
             print ("%04x :%s: %s %s : %d %d : %s : %s" % (pc, mem_str, instr_str, opreg_str, wordmem[reg["C"]], ovr, reg_str, qreg_str ))
+            # print ( "MEM: " + " ".join( [ "%06x" % (wordmem[i]&0xFFFFFF) for i in range ( 0x1100, 0x1110)]))
 
         pc += 1
 
         if opcode == op["halt"]:
-            print("\nStopped on halt instruction at %04x"  % pc )
+            print("\nStopped on halt instruction at %04x after executing %d instructions"  % (pc, instr_count) )
             break
 
         elif opcode == op["ld"]:
@@ -111,13 +113,13 @@ def emulate ( filename, nolisting ) :
             result = wordmem[operand] + wordmem [ acc_adr ]
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
-            
+
             sign_op0 = (wordmem[acc_adr] >> 23) & 0x1
             sign_op1 = (wordmem[operand] >> 23) & 0x1
             sign_result = (result >> 23) & 0x1
             if ( sign_op0 == sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
-                
+
         elif opcode == op["sub"]:
             result = wordmem [ acc_adr ]- wordmem[operand]
             wordmem [ acc_adr ] = result & 0xFFFFFF
@@ -146,7 +148,7 @@ def emulate ( filename, nolisting ) :
             sign_result = (result >> 23) & 0x1
             if ( sign_op0 == sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
-            
+
         elif opcode == op["subc"]:
             result = wordmem [ acc_adr ] - operand
             wordmem [ acc_adr ] = result & 0xFFFFFF
@@ -157,7 +159,7 @@ def emulate ( filename, nolisting ) :
             sign_result = (result >> 23) & 0x1
             if ( sign_op0 != sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
-            
+
         elif opcode == op["sto"]:
             result = wordmem [ acc_adr]
             wordmem [ operand ] = result & 0xFFFFFF
@@ -175,7 +177,7 @@ def emulate ( filename, nolisting ) :
             sign_result = (result >> 23) & 0x1
             if ( sign_op0 == sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
-            
+
         elif opcode == op["msub"]:
             result = wordmem [ acc_adr ]- wordmem[operand]
             wordmem [ operand ] = result & 0xFFFFFF
@@ -197,6 +199,28 @@ def emulate ( filename, nolisting ) :
             wordmem [ acc_adr ] ^= wordmem[ operand ]
         elif opcode == op["or"]:
             wordmem [ acc_adr ] |= wordmem[ operand ]
+
+        elif opcode == op["asr"]:
+            # Create 32b sign extension
+            signbit = 1 if (wordmem[acc_adr]&0x800000 >0) else 0
+            sign_extension = reduce ( lambda x, y: x | y, [(2**i)*signbit for i in range (0,32)])
+            double = sign_extension<<48 | wordmem[ acc_adr] << 24 | wordmem[reg["Q"]]
+            result = double >> (operand & 0x01F)
+            wordmem[reg["Q"]] = result & 0xFFFFFF
+            wordmem[acc_adr] = (result >> 24) & 0xFFFFFF
+        elif opcode == op["asl"]:
+            result = (wordmem[acc_adr] << ( operand & 0x1F))
+            wordmem[acc_adr] = result & 0xFFFFFF
+        elif opcode == op["lsr"]:
+            double = wordmem[ acc_adr] << 24 | wordmem[reg["Q"]]
+            result = double >> (operand & 0x01F)
+            wordmem[reg["Q"]] = result & 0xFFFFFF
+            wordmem[acc_adr] = (result >> 24) & 0xFFFFFF
+        elif opcode == op["rol"]:
+            double = (wordmem[acc_adr]<<48) | (wordmem[acc_adr]<<24)  | (wordmem[acc_adr])
+            # result in MS 24 bits so shift back
+            result = ((double << operand & 0x1F) >> 48)
+            wordmem[acc_adr] = result & 0xFFFFFF
 
         elif opcode == op["jpz"]:
             if wordmem[ acc_adr] == 0:
@@ -234,7 +258,7 @@ def emulate ( filename, nolisting ) :
                 ovr = 1
             elif ( sign_op0 != sign_op1 ) and sign_result !=1 : # unlike signed operands always produce a negative result
                 ovr = 1
-            
+
         elif opcode == op["div"]:
             dividend = (wordmem[acc_adr] << 23) + wordmem[reg["Q"]]  # Bit 23 of MSB is zero always
             divisor = wordmem[operand]
