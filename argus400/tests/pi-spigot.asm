@@ -16,7 +16,7 @@
         ;;  Magic Console output for emulator
         EQU     CONOUT , 0x0010
 
-        EQU     DIGITS,   512   ; Digits to be printed
+        EQU     DIGITS,   256   ; Digits to be printed
         EQU     COLS,     3+DIGITS*10//3  ; Needs a few more columns than digits to avoid occasional errors in last digit or few
 	EQU	CHRDOT,   ord('.')
         EQU     CHR0, 	  ord('0')
@@ -37,7 +37,7 @@
         MACRO PRINTDECDIGIT ( _NNNN_ )
         ;; print single decimal number from addr _NNNN_ as ASCII
         ld      r1, _NNNN_
-        add     r1, #48
+        add     r1, #ord('0')
         out     r1, CONOUT
         ENDMACRO
 

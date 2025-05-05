@@ -18,7 +18,7 @@
         ;;  Magic Console output for emulator
         EQU     CONOUT , 0x0010
 
-        EQU     DIGITS,   128      ; Digits to be printed
+        EQU     DIGITS,   256      ; Digits to be printed
         EQU     COLS,     DIGITS+2 ; Needs a few more columns than digits to avoid occasional errors in last digit or few
 
         ORG     0x1020          ; Place program in 1st block of core store above register locations
