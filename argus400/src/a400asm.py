@@ -163,6 +163,11 @@ def assemble( filename, listingon=True):
                                 if (inst in ("ld ldm add sub".split())) and opfields[1].strip()[0]=="#":
                                     operand = opfields[1].strip()[1:]
                                     inst = inst+"c"
+                                elif ( opfields[1].strip()[0]=="#"):
+                                    if ( inst in ("asr asl lsr rol".split())):
+                                        operand = opfields[1].strip()[1:]
+                                    else:
+                                        raise Exception ("Only instructions ld, ldm, add and sub can use direct addressing mode")
                                 else:
                                     operand = opfields[1].strip()
                                 gd = (re.match("(?P<operand>[0-9a-zA-Z_\'\"\+\-\)\(\*\&\^\%\|\s]*)(\!)?(?P<modifier>r[0-7])?\s*?", operand)).groupdict()
