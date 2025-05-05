@@ -281,7 +281,6 @@ def emulate ( filename, nolisting ) :
     if not nolisting:
         print ( ("").join(conout) )
 
-
 if __name__ == "__main__":
     """
     Command line option parsing.
