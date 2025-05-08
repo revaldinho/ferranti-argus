@@ -192,7 +192,7 @@ def emulate ( filename, nolisting ) :
         elif opcode == op["swap"]:
             tmp = wordmem[ operand ]
             wordmem [ operand ] = wordmem[ acc_adr ]
-            wormem [acc_adr] = tmp
+            wordmem [acc_adr] = tmp
         elif opcode == op["and"]:
             wordmem [ acc_adr ] &= wordmem[ operand ]
         elif opcode == op["xor"]:
