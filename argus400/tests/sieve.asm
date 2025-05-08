@@ -40,11 +40,12 @@ fillloop:
 
         ;; Iterate over numbers 3 .. MAXINT using r7 as loop counter, i
         ld      r7, #3
+        ld      r6, #48         ; use r6 as a constant divisor= 48 for bit indexing
+        ld      r5, #1          ; constant 1 for checking even/odd
 loop1:
         sto     r7, RQ          ; find word address and bit index for 'i' in flags
         ld      r3, ZERO
-        ld      r1, #48         ; eff. 48 flags per word (only flag odd numbers)
-        div     r3, r1          ; (r, q ) = <r3,Q>/r1
+        div     r3, r6          ; (r, q ) = <r3,Q>/48
         ld      r1, RQ          ; get word address in r1 (before lsr which corrupts RQ!)
         lsr     r3, #1          ; divide remainder by 2 (odd flags stored only)
 
@@ -63,33 +64,29 @@ loop1:
 printnl:
         PRINTNL( r1 )
         ;; now set all multiples of n in the table until we reach MAXINT
-        ld      r6, r7
-        ld      r5, #1          ; constant 1 for checking even/odd
+        ld      r4, r7
 loop2:
-        add     r6, r7          ; next multiple
-        ld      r1, r6
+        add     r4, r7          ; next multiple
+        ld      r1, r4          ; check that it is not an even number
         and     r1, r5
         jpz     r1, loop2
-
-        ld      r1, r6
+        ld      r1, r4
         sub     r1, MAXINT
         jpge    r1, nexti       ; bail out if > MAXINT and look at next int
-        sto     r6, RQ          ; (rem, quo) = (n%48,n//48)
+        sto     r4, RQ          ; (rem, quo) = (n%48,n//48)
         ld      r3, ZERO
-        ld      r1, #48
-        div     r3, r1
-        ld      r2, RQ          ; r3 is rem//2, r2 is quotient (save Q before lsr corrupts it!)
-        ld      r1, r2          ; check for out of bounds
+        div     r3, r6
+        ld      r1, RQ          ; check for out of bounds
         sub     r1, #TABLESZ
         jpge    r1, nexti
+        ld      r2, RQ          ; r3 is rem//2, r2 is quotient (save Q before lsr corrupts it!)
         lsr     r3, #1          ; divide remainder by 2 (only storing odds)
-        ld      r1, FLAGS!r2    ; get FLAG word
-        ld      r4, #1          ; generate bit mask
-        asl     r4, ZERO!r3
-        or      r1, r4          ; set the mask bit
-        sto     r1, FLAGS!r2    ; and write back
+        ld      r1, #1          ; generate bit mask
+        asl     r1, ZERO!r3
+        ld      r3, FLAGS!r2    ; get FLAG word
+        or      r3, r1          ; set the mask bit
+        sto     r3, FLAGS!r2    ; and write back
         jpz     r0, loop2       ; set next flag
-
 nexti:
         add     r7, #2          ; increment loop counter by two (skip even nums)
         ld      r1, r7
