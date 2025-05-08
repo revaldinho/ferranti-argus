@@ -40,12 +40,7 @@ fillloop:
 
         ;; Iterate over numbers 3 .. MAXINT using r7 as loop counter, i
         ld      r7, #3
-        ld      r5, #1          ; constant 1 in r5 for checking even/odd
 loop1:
-        ld      r1, r7
-        and     r1, r5          ; mask off bit 0
-        jpz     r1, nexti       ; skip ahead if it's an even number - not a prime!
-
         sto     r7, RQ          ; find word address and bit index for 'i' in flags
         ld      r3, ZERO
         ld      r1, #48         ; eff. 48 flags per word (only flag odd numbers)
@@ -67,8 +62,6 @@ loop1:
         jpz     r0, printdec
 printnl:
         PRINTNL( r1 )
-
-
         ;; now set all multiples of n in the table until we reach MAXINT
         ld      r6, r7
         ld      r5, #1          ; constant 1 for checking even/odd
@@ -98,7 +91,7 @@ loop2:
         jpz     r0, loop2       ; set next flag
 
 nexti:
-        add     r7, #1          ; increment loop counter
+        add     r7, #2          ; increment loop counter by two (skip even nums)
         ld      r1, r7
         sub     r1, MAXINT      ; less than MAXINT ?
         jplt    r1, loop1
@@ -114,6 +107,11 @@ printdec:
         ld      r3, #1          ; suppress leading zeroes
         ld      r2, MAXDIV      ; get first divisor into r2 = 1,000,000
 pd_loop:
+        ld      r1, r2          ; ensure we always print the last digit in case
+        sub     r1, #1          ; n=0
+        jpnz    r1, pd_notlast
+        ld      r3, ZERO
+pd_notlast:
         sto     r4, RQ          ; initialize double word dividend as (0,r4)
         ld      r4, ZERO
         div     r4, r2          ; (r,q) = (r4%r2, r4//r2)
@@ -125,15 +123,15 @@ printdec1:
         out     r1, CONOUT
         ld      r3, ZERO        ; reset leading zero flag after first digit printed
 pd_skip:
-	ld      r1, #10	        ; divide the divisor by 10
-	sto     r2, RQ
-	ld      r2, ZERO
-	div     r2, r1
-	ld      r2, RQ
-	jpnz    r2, pd_loop
+        ld      r1, #10         ; divide the divisor by 10
+        sto     r2, RQ
+        ld      r2, ZERO
+        div     r2, r1
+        ld      r2, RQ
+        jpnz    r2, pd_loop
 
-	jp      RLINK
+        jp      RLINK
 
-MAXDIV:	 WORD	1000000
-MAXINT:	 WORD	MAXINTSZ
-FLAGS:   WORD	0
+MAXDIV: WORD    1000000
+MAXINT: WORD    MAXINTSZ
+FLAGS:  WORD	0
