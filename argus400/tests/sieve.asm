@@ -41,7 +41,6 @@ fillloop:
         ;; Iterate over numbers 3 .. MAXINT using r7 as loop counter, i
         ld      r7, #3
         ld      r6, #48         ; use r6 as a constant divisor= 48 for bit indexing
-        ld      r5, #1          ; constant 1 for checking even/odd
 loop1:
         sto     r7, RQ          ; find word address and bit index for 'i' in flags
         ld      r3, ZERO
@@ -64,12 +63,11 @@ loop1:
 printnl:
         PRINTNL( r1 )
         ;; now set all multiples of n in the table until we reach MAXINT
-        ld      r4, r7
+        ld      r4, r7          ; r4 will be next multiple
+        ld      r5, r7          ; r5 is the increment, ie always move in multiples of 2n to avoid odd nums
+        add     r5, r7
 loop2:
-        add     r4, r7          ; next multiple
-        ld      r1, r4          ; check that it is not an even number
-        and     r1, r5
-        jpz     r1, loop2
+        add     r4, r5          ; next n (odd ) + (even multiple)*n
         ld      r1, r4
         sub     r1, MAXINT
         jpge    r1, nexti       ; bail out if > MAXINT and look at next int
