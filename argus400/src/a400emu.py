@@ -48,15 +48,15 @@ def readhex( filename ) :
 def emulate ( filename, nolisting ) :
 
     op = {
-        "ld":0x0, "ldm":0x1, "add":0x2, "sub":0x3,
-        "ldc":0x4, "ldmc":0x5, "addc":0x6, "subc":0x7,
-        "sto":0x8, "stom":0x9, "madd":0x0A, "msub":0x0b,
-        "swap":0xc, "and":0xd, "xor":0x0e, "or":0x0f,
-        "jpz":0x10, "jpnz":0x11, "jpge":0x12, "jplt":0x13,
-        "jpovr":0x14, "jpbusy":0x15, "out":0x16,"jp":0x17,
-        "asr":0x18, "asl": 0x19, "lsr": 0x1a, "rol":0x1b,
-        "halt":0x1c, "none1d":0x1d,
-        "mul":0x1e, "div": 0x1f
+        "ldx":0x0, "nlx":0x1, "add":0x2, "sub":0x3,
+        "ldc":0x4, "lmc":0x5, "adc":0x6, "sbc":0x7,
+        "sto":0x8, "stn":0x9, "ads":0x0A, "ssb":0x0b,
+        "exc":0xc, "and":0xd, "neq":0x0e, "orf":0x0f,
+        "jze":0x10, "jnz":0x11, "jge":0x12, "jlt":0x13,
+        "ovr":0x14, "jbs":0x15, "out":0x16, "jcs":0x17,
+        "sra":0x18, "sla": 0x19, "srl": 0x1a, "slc":0x1b,
+        "sll":0x1c, "slv":0x1d,
+        "mpy":0x1e, "div": 0x1f
     }
     dis = dict( [ (op[k],k) for k in [ x for x in op ]])
     reg = {"Z":0x0000, "R":0x0001, "Q":0x0002, "C":0x003, "HSW":0x0004,
@@ -78,7 +78,7 @@ def emulate ( filename, nolisting ) :
         acc = ((instr_word >> 2) & 0x7)
         mod = (instr_word) & 0x3
 
-        acc_adr = 0 if (acc==0 and opcode != op["jpbusy"] ) else 0x1000 + acc
+        acc_adr = 0 if (acc==0 and opcode != op["jbs"] ) else 0x1000 + acc
         if mod > 0 :
             operand = wordmem[ 0x1000 + mod ] + N
         else:
@@ -98,14 +98,10 @@ def emulate ( filename, nolisting ) :
 
         pc += 1
 
-        if opcode == op["halt"]:
-            print("\nStopped on halt instruction at 0x%04x after executing %d instructions"  % (pc, instr_count) )
-            break
-
-        elif opcode == op["ld"]:
+        if opcode == op["ldx"]:
             result = wordmem[operand]
             wordmem [ acc_adr ] = result & 0xFFFFFF
-        elif opcode == op["ldm"]:
+        elif opcode == op["nlx"]:
             result = -wordmem[operand]
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
@@ -134,11 +130,11 @@ def emulate ( filename, nolisting ) :
         elif opcode == op["ldc"]:
             result = operand
             wordmem [ acc_adr ] = result & 0xFFFFFF
-        elif opcode == op["ldmc"]:
+        elif opcode == op["lmc"]:
             result = -operand
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
-        elif opcode == op["addc"]:
+        elif opcode == op["adc"]:
             result = operand + wordmem [ acc_adr ]
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
@@ -149,7 +145,7 @@ def emulate ( filename, nolisting ) :
             if ( sign_op0 == sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
 
-        elif opcode == op["subc"]:
+        elif opcode == op["sbc"]:
             result = wordmem [ acc_adr ] - operand
             wordmem [ acc_adr ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
@@ -163,11 +159,11 @@ def emulate ( filename, nolisting ) :
         elif opcode == op["sto"]:
             result = wordmem [ acc_adr]
             wordmem [ operand ] = result & 0xFFFFFF
-        elif opcode == op["stom"]:
+        elif opcode == op["stn"]:
             result = -wordmem [ acc_adr]
             wordmem [ operand ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
-        elif opcode == op["madd"]:
+        elif opcode == op["ads"]:
             result = wordmem[ operand ] + wordmem [ acc_adr ]
             wordmem [ operand ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
@@ -178,7 +174,7 @@ def emulate ( filename, nolisting ) :
             if ( sign_op0 == sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
 
-        elif opcode == op["msub"]:
+        elif opcode == op["ssb"]:
             result = wordmem [ acc_adr ]- wordmem[operand]
             wordmem [ operand ] = result & 0xFFFFFF
             wordmem [reg["C"]]  = 1 if ( result & 0x1000000 != 0 ) else 0
@@ -189,18 +185,18 @@ def emulate ( filename, nolisting ) :
             if ( sign_op0 != sign_op1 ) and sign_result != sign_op0:
                 ovr = 1
 
-        elif opcode == op["swap"]:
+        elif opcode == op["exc"]:
             tmp = wordmem[ operand ]
             wordmem [ operand ] = wordmem[ acc_adr ]
             wordmem [acc_adr] = tmp
         elif opcode == op["and"]:
             wordmem [ acc_adr ] &= wordmem[ operand ]
-        elif opcode == op["xor"]:
+        elif opcode == op["neq"]:
             wordmem [ acc_adr ] ^= wordmem[ operand ]
-        elif opcode == op["or"]:
+        elif opcode == op["orf"]:
             wordmem [ acc_adr ] |= wordmem[ operand ]
 
-        elif opcode == op["asr"]:
+        elif opcode == op["sra"]:
             # Create 32b sign extension
             signbit = 1 if (wordmem[acc_adr]&0x800000 >0) else 0
             sign_extension = reduce ( lambda x, y: x | y, [(2**i)*signbit for i in range (0,32)])
@@ -208,43 +204,53 @@ def emulate ( filename, nolisting ) :
             result = double >> (operand & 0x01F)
             wordmem[reg["Q"]] = result & 0xFFFFFF
             wordmem[acc_adr] = (result >> 24) & 0xFFFFFF
-        elif opcode == op["asl"]:
+        elif opcode == op["sla"]:
             result = (wordmem[acc_adr] << ( operand & 0x1F))
             wordmem[acc_adr] = result & 0xFFFFFF
-        elif opcode == op["lsr"]:
+        elif opcode == op["srl"]:
             double = wordmem[ acc_adr] << 24 | wordmem[reg["Q"]]
             result = double >> (operand & 0x01F)
             wordmem[reg["Q"]] = result & 0xFFFFFF
             wordmem[acc_adr] = (result >> 24) & 0xFFFFFF
-        elif opcode == op["rol"]:
+        elif opcode == op["slc"]:
             double = (wordmem[acc_adr]<<48) | (wordmem[acc_adr]<<24)  | (wordmem[acc_adr])
             # result in MS 24 bits so shift back
             result = ((double << operand & 0x1F) >> 48)
             wordmem[acc_adr] = result & 0xFFFFFF
-
-        elif opcode == op["jpz"]:
+        elif opcode == op["sll"]:
+            # FIXME - A500 only
+            pass
+        elif opcode == op["slc"]:
+            # FIXME - A500 only
+            pass
+        elif opcode == op["jze"]:
             if wordmem[ acc_adr] == 0:
-                pc = operand
-        elif opcode == op["jpnz"]:
+                if operand == pc -1:
+                    # Effective HALT instruction
+                    print("\nStopped on halt instruction at 0x%04x after executing %d instructions"  % (pc, instr_count) )
+                    break
+                else:
+                    pc = operand
+        elif opcode == op["jnz"]:
             if wordmem[ acc_adr] != 0:
                 pc = operand
-        elif opcode == op["jplt"]:
+        elif opcode == op["jlt"]:
             if wordmem[ acc_adr] & 0x800000 == 0x800000:
                 pc = operand
-        elif opcode == op["jpge"]:
+        elif opcode == op["jge"]:
             if wordmem[ acc_adr] & 0x800000 == 0:
                 pc = operand
-        elif opcode == op["jpovr"]:
+        elif opcode == op["ovr"]:
             if ovr != 0:
                 pc = operand
                 ovr = 0
-        elif opcode == op["jpbusy"]:
+        elif opcode == op["jbs"]:
             if (busy & (1<<operand)) != 0:
                 pc = operand
-        elif opcode == op["jp"]:
+        elif opcode == op["jcs"]:
             pc = wordmem[operand]
 
-        elif opcode == op["mul"]:
+        elif opcode == op["mpy"]:
             result = wordmem[operand ] * wordmem[acc_adr]
 
             # print ( "MUL %d * %d = %d" % ( wordmem[acc_adr] , wordmem[operand], result))
@@ -275,6 +281,9 @@ def emulate ( filename, nolisting ) :
                     sys.stdout.flush()
                 else:
                     conout.append ( "%c" % (wordmem[acc_adr]%127))
+            elif operand == 0x0000 and acc_adr == 0x0000:
+                print("\nStopped on halt instruction at 0x%04x after executing %d instructions"  % (pc, instr_count) )
+                break
         else:
             print ("Error - unidentified opcode 0x%02x" % opcode)
 

@@ -11,37 +11,40 @@
         ;;  Magic Console output for emulator
         EQU     CONOUT , 0x0010
 
+        MACRO HALT()
+@L1:    jze r0, @L1
+        ENDMACRO
 
         ORG     0x1020
 main:
-        ld      r1, #L1
+        ldc     r1, L1
         sto     r1, RLINK
-        ld      r7, #banner
-        jpnz    r7, sprint
+        ldc     r7, banner
+        jnz     r7, sprint
 
 L1:
-        halt
+        HALT()
 
         ;; SPRINT
         ;; print packed byte string pointed to by r7
         ;; uses temporary registers r1,2,3,4
 sprint:
-        ld      r3, r7
+        ldx     r3, r7
 sprint1:
-        ld      r2, #3
-        ld      r4, 0!r3
+        ldc     r2, 3
+        ldx     r4, 0!r3
 sprint2:
-        ld      r1, r4
+        ldx     r1, r4
         and     r1, bytemask
-        jpz     r1, sprint_exit
+        jze     r1, sprint_exit
         out     r1, CONOUT
-        asr     r4, #8
-        sub     r2, #1
-        jpnz    r2, sprint2
-        add     r3, #1
-        jpz     r2, sprint1
+        sra     r4, 8
+        sbc     r2, 1
+        jnz     r2, sprint2
+        adc     r3, 1
+        jze     r2, sprint1
 sprint_exit:
-        jp      RLINK           ; return
+        jcs     RLINK           ; return
 
 banner: BSTRING "Hello, World!"
 bytemask:
