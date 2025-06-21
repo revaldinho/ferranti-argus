@@ -62,81 +62,91 @@ op = {
     "mpy":0x1e, "div": 0x1f
 }
 
-a500_model_id = ("Series 1, Model 1", "Series 2, Model 2", "Series 3, Model 1", "Series 4, Model 2")
-# Instruction times per model taken from Argus 500 training manual
-#              :  S1M1 S2M2 S3M1 S4M2
-a500_timing_us = { op["ldx"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["nlx"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["add"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["sub"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["ldc"] : ( 4.7, 3.1, 4.7, 2.8 ),
-                   op["lmc"] : ( 4.7, 3.1, 4.7, 2.8 ),
-                   op["adc"] : ( 4.7, 3.1, 4.7, 2.8 ),
-                   op["sbc"] : ( 4.7, 3.1, 4.7, 2.8 ),
-                   op["sto"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["stn"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["ads"] : ( 6.4, 4.0, 6.4, 3.6 ),
-                   op["ssb"] : ( 6.4, 4.0, 6.4, 3.6 ),
-                   op["exc"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["and"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["neq"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["orf"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["jze"] : ( 4.0, 2.4, 4.0, 2.2 ),
-                   op["jnz"] : ( 4.0, 2.4, 4.0, 2.2 ),
-                   op["jge"] : ( 4.0, 2.4, 4.0, 2.2 ),
-                   op["jlt"] : ( 4.0, 2.4, 4.0, 2.2 ),
-                   op["ovr"] : ( 2.7, 1.9, 3.4, 1.9 ),
-                   op["jbs"] : ( 2.7, 1.9, 3.4, 1.9 ),
-                   op["out"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["jcs"] : ( 6.0, 3.6, 6.0, 3.2 ),
-                   op["sra"] : ( 4.4, 2.8, 4.4, 2.6 ),
-                   op["sla"] : ( 4.4, 2.8, 4.4, 2.6 ),
-                   op["srl"] : ( 4.4, 2.8, 4.4, 2.6 ),
-                   op["slc"] : ( 4.4, 2.8, 4.4, 2.6 ),
-                   op["sll"] : ( 4.4, 2.8, 4.4, 2.6 ),
-                   op["slv"] : ( 6.4, 4.0, 6.4, 3.6 ),
-                   op["mpy"] : ( 13.4, 11.5, 13.4, 11.1),
-                   op["div"] : ( 15.0, 13.1, 15.0, 12.7)
+model_id = ("Argus 400", "Argus 500 Series 1, Model 1", "Argus 500 Series 2, Model 2", "Argus 500 Series 3, Model 1", "Argus 500 Series 4, Model 2")
+# A500 Instruction times per model taken from Argus 500 training manual
+# A400 instruction timings are not available yet, so for now these are taken from Argus 500 S1M1 machine (which should share the same 4Mhz clock) and then
+#      - add 24*0.25us (4MHz) cycles for each operation using the ALU including comparison and address modification
+#      - shifts are treated the same as in the Argus 500 (although this makes no sense for the 4MHz cycle, but use this for now until we find some more
+#        documentation on both machines - e.g. possibly the Argus 500 used in the training course was actually a 2.5MHz machine ?))
+#                            :  A400   S1M1 S2M2 S3M1 S4M2
+base_timing_us = { op["ldx"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["nlx"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["add"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["sub"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["ldc"] : ( 4.7,  4.7, 3.1, 4.7, 2.8 ),
+                   op["lmc"] : ( 4.7,  4.7, 3.1, 4.7, 2.8 ),
+                   op["adc"] : ( 4.7,  4.7, 3.1, 4.7, 2.8 ),
+                   op["sbc"] : ( 4.7,  4.7, 3.1, 4.7, 2.8 ),
+                   op["sto"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["stn"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["ads"] : ( 6.4,  6.4, 4.0, 6.4, 3.6 ),
+                   op["ssb"] : ( 6.4,  6.4, 4.0, 6.4, 3.6 ),
+                   op["exc"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["and"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["neq"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["orf"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["jze"] : ( 4.0,  4.0, 2.4, 4.0, 2.2 ),
+                   op["jnz"] : ( 4.0,  4.0, 2.4, 4.0, 2.2 ),
+                   op["jge"] : ( 4.0,  4.0, 2.4, 4.0, 2.2 ),
+                   op["jlt"] : ( 4.0,  4.0, 2.4, 4.0, 2.2 ),
+                   op["ovr"] : ( 2.7,  2.7, 1.9, 3.4, 1.9 ),
+                   op["jbs"] : ( 2.7,  2.7, 1.9, 3.4, 1.9 ),
+                   op["out"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["jcs"] : ( 6.0,  6.0, 3.6, 6.0, 3.2 ),
+                   op["sra"] : ( 4.4,  4.4, 2.8, 4.4, 2.6 ),
+                   op["sla"] : ( 4.4,  4.4, 2.8, 4.4, 2.6 ),
+                   op["srl"] : ( 4.4,  4.4, 2.8, 4.4, 2.6 ),
+                   op["slc"] : ( 4.4,  4.4, 2.8, 4.4, 2.6 ),
+                   op["sll"] : ( 4.4,  4.4, 2.8, 4.4, 2.6 ),
+                   op["slv"] : ( 6.4,  6.4, 4.0, 6.4, 3.6 ),
+                   op["mpy"] : ( 13.4, 13.4, 11.5, 13.4, 11.1),
+                   op["div"] : ( 15.0, 15.0, 13.1, 15.0, 12.7)
                   }
 ## Add to basic timing for reading from IO space
-a500_IO_inc_us   = ( 2.0, 1.2, 2.0, 1.1 )
+IO_inc_timing_us   = ( 2.0, 2.0, 1.2, 2.0, 1.1 )
 ## Add to basic timing for modified address operations (ie modifier != 0 )
-a500_timing_mod_us = ( 2.0, 1.2, 2.0, 1.1 )
+modifier_timing_us = ( 2.0, 2.0, 1.2, 2.0, 1.1 )
 # Add this factor * N for multiplace shift operations
-a500_shiftperbit_us= 0.4
+perbit_shift_timing_us  = (0.4, 0.4, 0.4, 0.4, 0.4 )
+perbit_alu_timing_us  = (0.25, 0.0, 0.0, 0.0, 0.0 )
 
-def a500_exec_time_us ( opcode, operand, modifier, io_low, io_high, memstore ) :
-    t_us = [0]* 4
+def exec_time_us ( opcode, operand, modifier, io_low, io_high, memstore ) :
+    t_us = [0]* 5
     # NB operand has already been modified as required for computing the shift distance or determining IO address
-    shift_increment = a500_shiftperbit_us * (operand % 32) if (op["sra"] <= opcode <= op["slv"]) else 0
-    for i in range (0, 4):
-        t_us[i] = a500_timing_us[opcode][i] + shift_increment
-        t_us[i] += a500_IO_inc_us[i] if ( io_low <= operand <= io_high ) else 0
-        t_us[i] += a500_timing_mod_us[i] if ( modifier > 0 ) else 0
+    for i in range (0, 5):
+        t_us[i] = base_timing_us[opcode][i]
+        t_us[i] += IO_inc_timing_us[i] if ( io_low <= operand <= io_high ) else 0
+        t_us[i] += modifier_timing_us[i] if ( modifier > 0 ) else 0
+        t_us[i] += (perbit_shift_timing_us[i] * (operand % 32)) if (op["sra"] <= opcode <= op["slv"]) else 0
+        if i == 0 : # Argus 400
+            if opcode in (
+                    op["nlx"], op["add"],  op["sub"],
+                    op["lmc"], op["adc"],  op["sbc"],
+                    op["stn"], op["ads"],  op["ssb"],
+                    op["and"], op["neq"],  op["orf"],
+                    op["jze"], op["jnz"], op["jge"],  op["jlt"],
+                    op["jbs"], op["jcs"] ):
+                t_us[i] += perbit_alu_timing_us[i] * 24
+            elif opcode == op["mpy"] or op == op["div"]:
+                # surely many more times around the ALU ?
+                t_us[i] += perbit_alu_timing_us[i] * 24 * 24
     return t_us
 
 def print_exec_time ( t ) :
-    print ( "Nominal execution times for Argus 500 models")
+    print ( "Nominal execution times for different Argus models")
     series = 0
     model = 0
     for i in t:
-        if i > 10000000 :
-            years = divmod ( i/1000000, 31536000) # get years
-            weeks = divmod ( years[1], 604800)  # use remainder from here on
-            days = divmod ( weeks[1], 86400)
-            hours = divmod ( days[1], 3600)
-            minutes = divmod ( hours[1], 60)
-            seconds = divmod (minutes[1],1)
-            print ( "- %s : %s%s%s%s" % ( a500_model_id[series],
-                                          "%d years " % years[0] if years[0] >0 else "",
-                                          "%d weeks " % weeks[0] if weeks[0] >0 else "",
-                                          "%d minutes " % minutes[0] if minutes[0] >0 else "",
-                                          "%d seconds" % seconds[0] if seconds[0] > 0 else ""))
-        elif i > 1000:
-            print ( "- %s : %8.4f milliseconds" % ( a500_model_id[series], i/1000))
+        if ( i > 1000000 ) :
+            print ( "- %-32s : %10.3f s  %s" % ( model_id[series], i/1000000, "[1]" if series >0 else "[2]" ))
         else:
-            print ( "- %s : %8.1f microseconds" % ( a500_model_id[series], i))
+            print ( "- %-32s : %10f ms  %s" % ( model_id[series], i/1000, "[1]" if series >0 else "[2]" ))
         series+=1
+
+    print ( "[1] Argus 500 times taken from Argus 500 training manual")
+    print ( "[2] Argus 400 times taken by combining Argus 500 Series 1 times, with additional 4Mhz cycles for use of bit-serial ALU")
+
+
 
 
 def usage():
@@ -161,7 +171,7 @@ def emulate ( filename, nolisting, machine ) :
 
     wordmem = readhex( filename )
 
-    timers = [0.0,0.0,0.0,0.0]
+    timers = [0.0,0.0,0.0,0.0,0.0]
     conout = []
     (ovr, busy, pc, instr_count) = (0, 0, 0x1020, 0) # initialise machine state inc PC
 
@@ -197,7 +207,7 @@ def emulate ( filename, nolisting, machine ) :
         pc += 1
 
         if machine == 500:
-            timers = [ sum(i) for i in zip(timers, a500_exec_time_us( opcode, operand, mod, 0x010, 0x1000, wordmem ) ) ]
+            timers = [ sum(i) for i in zip(timers, exec_time_us( opcode, operand, mod, 0x010, 0x1000, wordmem ) ) ]
 
         if opcode == op["ldx"]:
             result = wordmem[operand]
